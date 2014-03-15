@@ -2,24 +2,25 @@
 #include <Wire.h> // For i2c communications with the MCP23017 i/o expanders and the HT16K33 LED matrix driver
 #include "Adafruit_LEDBackpack.h" // For the HT16K33
 #include "Adafruit_GFX.h" // For the HT16K33
-
-// Serial
-String command; // Used for debugging to print the chars to the Serial Monitor
-int commandValue = 0;
-char charIn;
-
-
-Adafruit_LEDBackpack matrixA = Adafruit_LEDBackpack();
+  
+// Initialize LED Matrix(s)
+Adafruit_LEDBackpack matrixA = Adafruit_LEDBackpack(); // Sets Objects (class) to Matrix
 Adafruit_LEDBackpack matrixB = Adafruit_LEDBackpack();
 Adafruit_LEDBackpack matrixC = Adafruit_LEDBackpack();
 Adafruit_LEDBackpack matrixD = Adafruit_LEDBackpack();
 Adafruit_LEDBackpack matrixE = Adafruit_LEDBackpack();
 
-#define matAaddy 0x70
-#define matBaddy 0x74
-#define matCaddy 0x76
+#define matAaddy 0x70  // Addresses assigned by shorting pins (A0, A1, A2) on the board (HT16K33)
+#define matBaddy 0x74  // see HT16K33 data sheet, or Adafruit Learning documents, for more info on address setting
+#define matCaddy 0x76  // Use pins A4 and A5 on Arduino Board (UNO)
 #define matDaddy 0x72
 #define matEaddy 0x71
+
+// MatrixA Roll, AHR, IBR, ABR
+// MatrixB used for Bargraph displays
+// MatrixC used for some cryo Bargraph displays
+// MatrixD Mission timer, Pitch and Yaw
+// MatrixE Warning Light Matrixs
 
 // MCP23017 registers (everything except direction defaults to 0)
 #define IODIRA   0x00   // IO direction  (0 = output, 1 = input (Default))
@@ -45,18 +46,20 @@ Adafruit_LEDBackpack matrixE = Adafruit_LEDBackpack();
 #define OLLATA   0x14   // Output latch. Write to latch output.
 #define OLLATB   0x15
 
-#define expA 0x20
-#define expB 0x21
-#define expC 0x22
+#define expA 0x20  // These are addresses for I/O Expanders (MCP23017)
+#define expB 0x21  // Manually bias pins on chip to create addresses, see data sheet for more info
+#define expC 0x22  // Use pins A4 and A5 on Arduino Board (UNO)
 #define expD 0x23
 
-#define barCur   0
-#define barVolt  3
-#define barOx    6
-#define barOhm   9
+//12 Segment Bar Display LED for EECOM Panel
+#define barCur   0  // Current
+#define barVolt  3  // Voltage
+#define barOx    6  // Oxygen
+#define barOhm   9  // Ohms
 
-uint8_t state[64]; // buffer for state of buttons
-uint8_t potstate[9]; // buffer for state of potentiometers
+// Allocating Arduino Memory
+uint8_t state[64]; // buffer for state of buttons (for all MCP23017 Expander I/Os)
+uint8_t potstate[9]; // buffer for state of potentiometers ; EECOM-4, INCO-4 (2 of them are Slide), Abort
 uint16_t ABuffer[8]; // buffer for LED matrix A
 uint16_t BBuffer[8]; // buffer for LED matrix B
 uint16_t CBuffer[8]; // buffer for LED matrix C
@@ -66,22 +69,22 @@ uint16_t EBuffer[8]; // buffer for LED matrix E
 uint8_t MTdaysC[4] = {0,1,2,3};
 uint8_t MThoursC[2] = {4,5};
 uint8_t MTminutesC[2] = {6,7};
-uint8_t MTCat[8] = {0,1,2,3,4,5,6,7};
-uint8_t MTAn[8] = {0,1,2,3,4,5,6,7};
-uint8_t pitchCat[4] = {0,1,2,3};
-uint8_t pitchAn[8] = {8,9,10,11,12,13,14,15};
-uint8_t yawCat[4] = {4,5,6,7};
-uint8_t yawAn[8] = {8,9,10,11,12,13,14,15};
-uint8_t rollCat[4] = {0,1,2,3};
-uint8_t rollAn[8] = {0,1,2,3,4,5,6,7};
-uint8_t ihrCat[4] = {0,1,2,3};
-uint8_t ihrAn[8] = {8,9,10,11,12,13,14,15};
-uint8_t abrCat[4] = {4,5,6,7};
-uint8_t abrAn[8] = {8,9,10,11,12,13,14,15};
-uint8_t ahrCat[4] = {4,5,6,7};
-uint8_t ahrAn[8] = {0,1,2,3,4,5,6,7};
+uint8_t MTCat[8] = {0,1,2,3,4,5,6,7};    //Cathodes on Mission Timer; Ipad Panel
+uint8_t MTAn[8] = {0,1,2,3,4,5,6,7};            //Anodes on Mission Timer; Ipad Panel
+uint8_t pitchCat[4] = {0,1,2,3};        //Cathodes on Pitch; Attitude Panel
+uint8_t pitchAn[8] = {8,9,10,11,12,13,14,15};  //Anodes on Pitch; Attitude Panel
+uint8_t yawCat[4] = {4,5,6,7};          //Cathodes on Yaw; Attitude Panel
+uint8_t yawAn[8] = {8,9,10,11,12,13,14,15};   //Anodes on Yaw; Attitude Panel
+uint8_t rollCat[4] = {0,1,2,3};         //Cathodes on Roll; Attitude Panel
+uint8_t rollAn[8] = {0,1,2,3,4,5,6,7};        //Anodes on Roll; Attitude Panel
+uint8_t ihrCat[4] = {0,1,2,3};          //Cathodes on IHR; Surgeon Panel
+uint8_t ihrAn[8] = {8,9,10,11,12,13,14,15};   //Anodes on IHR; Surgeon Panel
+uint8_t abrCat[4] = {4,5,6,7};          //Cathodes on ABR; Surgeon Panel
+uint8_t abrAn[8] = {8,9,10,11,12,13,14,15};  //Anodes on ABR; Surgeon Panel
+uint8_t ahrCat[4] = {4,5,6,7};          //Cathodes on AHR; Surgeon Panel
+uint8_t ahrAn[8] = {0,1,2,3,4,5,6,7};        //Anodes on AHR; Surgeon Panel
 uint8_t statCat[6] = {0,1,2,3,4,5};
-uint8_t statAn[6] = {0,1,2,3,4,5};
+uint8_t statAn[6] = {0,1,2,3,4,5};           
 
 
 uint8_t grphCats[24] = {0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7};
@@ -89,11 +92,9 @@ uint8_t grphAns[24] =  {0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2};
 uint8_t cryoCats[24] = {0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7};
 uint8_t cryoAns[24] =  {0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2};
 
-//uint8_t cryoCats[24] = {7,6,5,4,3,2,1,0,7,6,5,4,3,2,1,0,7,6,5,4,3,2,1,0};
-//uint8_t cryoAns[24] =  {2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0};
-
+//                   light set-up for 12 Bar LED Displays, EECOM Panel
 //                   r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g
-uint8_t gtwelve[] = {1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0};
+uint8_t gtwelve[] = {1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0};  
 uint8_t geleven[] = {0,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0};
 uint8_t gten[] =    {0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 uint8_t gnine[] =   {0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
@@ -106,8 +107,9 @@ uint8_t gthree[] =  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1};
 uint8_t gtwo[] =    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0};
 uint8_t gone[] =    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0};
 
+//                   light set-up for 12 Bar LED Displays, Cryogenics Panel
 //                   r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g
-uint8_t ctwelve[] = {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1};
+uint8_t ctwelve[] = {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1};  
 uint8_t celeven[] = {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0};
 uint8_t cten[] =    {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,0,0};
 uint8_t cnine[] =   {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,0,0,0,0};
@@ -131,55 +133,23 @@ uint8_t minutes = 0;
 uint8_t hours = 0;
 unsigned long clockTimer = 0;
 
-int rxCmnd[5];
+int rxCmnd[5]; // allocate space which will later be used for storing incoming "Chars"; Array
+char charIn; // Variable the incoming serial information is stored in
 
-void NprocessSerial (void)
-{
-  uint8_t cmndPos = 0;
-  if (Serial.available()) {
-    delay(5); // wait for all data to come in
-    while(Serial.available() > 0) {
-      charIn = Serial.read();
-      if (charIn == '\n') {
-        decodeCommand();
-      } else {
-        if (charIn == ',') {
-          //rxCmnd[cmndPos] = commandValue;
-          //threeDigitDisp(matrixD, DBuffer, yawCat, yawAn, commandValue);
-          cmndPos++;
-        } else {
-          //if( isDigit(charIn) )// is this an ascii digit between 0 and 9?
-          //{
-            rxCmnd[cmndPos] = (charIn - '0');
-            //commandValue = (commandValue * 10) + (charIn - '0'); // yes, accumulate the value
-          //}          
-        }
-      }
-    }
-  }
-}
 void processSerial (void)
 {
   uint8_t cmndPos = 0;
-  commandValue = 0;
   if (Serial.available()) {
     delay(5); // wait for all data to come in
-    while(Serial.available() > 0) {
-      charIn = Serial.read();
+    while(Serial.available() > 0) {   //While Serial is available or 1 (on)
+      charIn = Serial.read();   // Deposit incoming Byte information into "charIn" variable
       if (charIn == '\n') {
         decodeCommand();
       } else {
         if (charIn == ',') {
-          //rxCmnd[cmndPos] = commandValue;
-          //commandValue = 0;
-          //threeDigitDisp(matrixD, DBuffer, yawCat, yawAn, commandValue);
           cmndPos++;
         } else {
-          //if( isDigit(charIn) )// is this an ascii digit between 0 and 9?
-          //{
-            rxCmnd[cmndPos] = (charIn - '0');
-            //commandValue = (commandValue * 10) + (charIn - '0'); // yes, accumulate the value
-          //}          
+            rxCmnd[cmndPos] = (charIn - '0');        
         }
       }
     }
@@ -514,7 +484,7 @@ void switchBars (Adafruit_LEDBackpack matrix, uint16_t buffer[8], uint8_t grphCa
 
 void barDisp (Adafruit_LEDBackpack matrix, uint16_t buffer[8], uint8_t grphCats[], uint8_t grphAns[], uint8_t pos, uint8_t offset)
 {
-  //uint8_t cmnd[24];
+  // Mapped outout settings for EECOM Bar displays
   switch (pos) {
     case 12:    
     switchBars(matrix, buffer, grphCats, grphAns, gtwelve, offset);
@@ -568,7 +538,7 @@ void barDisp (Adafruit_LEDBackpack matrix, uint16_t buffer[8], uint8_t grphCats[
 
 void cBarDisp (Adafruit_LEDBackpack matrix, uint16_t buffer[8], uint8_t grphCats[], uint8_t grphAns[], uint8_t pos, uint8_t offset)
 {
-  //uint8_t cmnd[24];
+  // Mapped outout settings for Cryogenics Bar displays
   switch (pos) {
     case 12:    
     switchBars(matrix, buffer, grphCats, grphAns, ctwelve, offset);
@@ -650,18 +620,14 @@ void updateClock (void)
       digitDisp(matrixD, DBuffer, 1, MTdaysC, MTAn, tens);
       digitDisp(matrixD, DBuffer, 2, MTdaysC, MTAn, ones);
     }
-    //hundreds = hours/100;
-    //number = hours-hundreds*100;
     tens = hours/10;
     ones = hours-tens*10;
-    //digitDisp(matrixD, DBuffer, 1, MTdaysC, MTAn, hundreds);
     digitDisp(matrixD, DBuffer, 0, MThoursC, MTAn, tens);
     digitDisp(matrixD, DBuffer, 1, MThoursC, MTAn, ones);
 
   }
   tens = minutes/10;
   ones = minutes-tens*10;
-  //digitDisp(matrixD, DBuffer, 1, MTdaysC, MTAn, hundreds);
   digitDisp(matrixD, DBuffer, 0, MTminutesC, MTAn, tens);
   digitDisp(matrixD, DBuffer, 1, MTminutesC, MTAn, ones);
 }
@@ -714,7 +680,7 @@ void scanPots()
 {
   int reading;
   
-  reading = map(analogRead(0), 0, 1010, 1, 12);
+  reading = map(analogRead(0), 0, 1010, 1, 12); // mapping the analog pin to the 12 Bar Display
   potToGraph(reading, barVolt);
   reading = map(analogRead(1), 0, 1010, 1, 12);
   potToGraph(reading, barOhm);
@@ -749,11 +715,11 @@ void setup ()
 //  expanderWriteBothPort (INTCONA, 0x00, expB);
 //  expanderWriteBothPort (INTCONA, 0x00, expC);
 //  expanderWriteBothPort (INTCONA, 0x00, expD);  
-  matrixA.begin(matAaddy);  // pass in the address of the HT16K33
-  matrixB.begin(matBaddy);  // pass in the address of the HT16K33
-  matrixC.begin(matCaddy);  // pass in the address of the HT16K33
-  matrixD.begin(matDaddy);  // pass in the address of the HT16K33
-  matrixE.begin(matEaddy);  // pass in the address of the HT16K33
+  matrixA.begin(matAaddy);  // pass in the address of the HT16K33 (0x70)
+  matrixB.begin(matBaddy);  // pass in the address of the HT16K33 (0x74)
+  matrixC.begin(matCaddy);  // pass in the address of the HT16K33 (0x76)
+  matrixD.begin(matDaddy);  // pass in the address of the HT16K33 (0x72)
+  matrixE.begin(matEaddy);  // pass in the address of the HT16K33 (0x71)
 
   matrixA.setBrightness(10);  
   matrixB.setBrightness(10);  
@@ -771,25 +737,19 @@ void setup ()
   initClock();
   updateClock();
   clockTimer = millis();
-  //lampTestOn();
   ledOn(matrixE, EBuffer, 4, 4);
-
-  //Serial.println("Setup Complete");
-}  // end of setup
+}  
 
 
 void loop() {
-//  scanButtons();
   if (NUMERICREFRESH < (millis() - numericTimer)) {
     numericTimer = millis();
     randomNumerics();
   }
-//  scanButtons();
   if (60000 < (millis() - clockTimer)) {
     clockTimer = millis();
     updateClock();
   }
-//  scanButtons();
   scanPots();
   scanButtons();
   processSerial();
