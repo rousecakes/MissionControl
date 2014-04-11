@@ -250,12 +250,11 @@ def mainLoop():
 	reentry = pygame.mixer.Sound("reentry.wav") # ReEntry Pushbutton
 	splashdown = pygame.mixer.Sound("splashdown.wav") # Splashdown Pushbutton
 	poll = pygame.mixer.Sound("poll.wav") # Go For Launch Pushbutton
-	
-	shortexp = pygame.mixer.Sound("shortexp.wav")  # exp = explosion??
-	medexp = pygame.mixer.Sound("medexp.wav")
+	shortexp = pygame.mixer.Sound("shortexp.wav") # CSM/LV Switch
+	medexp = pygame.mixer.Sound("medexp.wav") # SM/CM Switch
 	les = pygame.mixer.Sound("les.wav") # LES Motor Fire Switch
-	pexp = pygame.mixer.Sound("pexp.wav")
-	hiexp = pygame.mixer.Sound("hiexp.wav")
+	pexp = pygame.mixer.Sound("pexp.wav") # Apex Cover Jettsn Switch
+	hiexp = pygame.mixer.Sound("hiexp.wav") # Canard Deploy Switch
 	drogue = pygame.mixer.Sound("drogue.wav") # Drogue Deploy Switch
 	main = pygame.mixer.Sound("main.wav") # Main Deploy Switch
 	fpump = pygame.mixer.Sound("fpump.wav") # Pumps Switch
@@ -317,8 +316,8 @@ def mainLoop():
 			if (digit > 128):
 				digit = digit - 128
 				offBit = 1
-		#####		
-			if (digit == 6):
+				
+			if (digit == 6): # SM/CM Sep Switch
 				if (offBit):
 					offBit = 0
 					medexp.play()
@@ -426,8 +425,8 @@ def mainLoop():
 				else:
 					sequenceC.play(tde)
 					serialFromArduino.write(b'1,4,4,7,0\n') # Illuminated TDE Pushbutton
-		#####			
-			elif (digit == 3):
+					
+			elif (digit == 3): # Canard Deploy
 				if (offBit):
 					offBit = 0
 					hiexp.play()
@@ -458,13 +457,13 @@ def mainLoop():
 				else:
 					drogue.play()
 					serialFromArduino.write(b'1,4,4,0,0\n') # Illuminated Drogue Chute
-		#####			
-			if (digit == 10):
+					
+			if (digit == 10): # Apex Cover Jettsn Switch
 				if (offBit):
 					offBit = 0
 					pexp.play()
-		#####			
-			elif (digit == 11):
+					
+			elif (digit == 11): # CSM/LV Sep Switch
 				if (offBit):
 					offBit = 0
 					shortexp.play()
@@ -681,111 +680,111 @@ def mainLoop():
 					serialFromArduino.write(b'0,4,4,7,5\n') # Deluminate Abort Button
 					abortArmed = 0
 					
-			elif (digit == 23):
+			elif (digit == 23): # Waste Dump Switch
 				if (offBit):
-					serialFromArduino.write(b'1,4,4,7,6\n')
+					serialFromArduino.write(b'1,4,4,7,6\n') # Illluminate Waste Dump
 					offbit = 0
 					flush.play()
 				else:
-					serialFromArduino.write(b'0,4,4,7,6\n')
+					serialFromArduino.write(b'0,4,4,7,6\n') # Deluminate Waste Dump
 					flush.fadeout(2000)
 					
-			elif (digit == 20):
+			elif (digit == 20): # PTT Pushbutton 
 				if (offBit):
-					serialFromArduino.write(b'0,4,4,6,5\n')
+					serialFromArduino.write(b'0,4,4,6,5\n') # Deluminate PTT 
 					offBit = 0
 					qout.play()
 				else:
-					serialFromArduino.write(b'1,4,4,6,5\n')
+					serialFromArduino.write(b'1,4,4,6,5\n') # Illuminate PTT
 					qin.play()
 					
-			elif (digit == 32):
+			elif (digit == 32): # Suit Comp Rocker Switch
 				if (offBit):
-					serialFromArduino.write(b'0,4,4,3,6\n')
+					serialFromArduino.write(b'0,4,4,3,6\n') # Deluminate Suit Comp
 					aircomp.fadeout(2000)
 					offBit = 0
 				else:
-					serialFromArduino.write(b'1,4,4,3,6\n')
+					serialFromArduino.write(b'1,4,4,3,6\n') # Illuminate Suit Comp
 					aircomp.play()
 					suitCompPushed = suitCompPushed + 1
 					sleep(0.1)
 					
 					if (suitCompPushed % 5) == 0:
 						sleep(0.1)
-						serialFromArduino.write(b'1,4,4,2,5\n')
+						serialFromArduino.write(b'1,4,4,2,5\n') # Illuminate Suit Comp
 						sleep(0.1)
 						serialFromArduino.write(b'1,4,4,1,7\n') # Illuminated Master Alarm Pushbutton
 						cwsC.play(cws)
 						
-			elif (digit == 33):
+			elif (digit == 33): # Int Lights Rocker Switch
 				if (offBit):
 					offbit = 0
-					serialFromArduino.write(b'0,4,4,2,6\n')
+					serialFromArduino.write(b'0,4,4,2,6\n') # Deluminate Int Lights
 				else:
-					serialFromArduino.write(b'1,4,4,2,6\n')
+					serialFromArduino.write(b'1,4,4,2,6\n') # Illuminate Int Lights
 					
-			elif (digit == 34):
+			elif (digit == 34): # SCE Power Switch
 				if (offBit):
 					offbit = 0
-					serialFromArduino.write(b'1,4,4,6,6\n')
+					serialFromArduino.write(b'1,4,4,6,6\n') # Illuminated SCE Power
 					sceAux = True
 					if lightningStruck:
 						sceRestored = True
 				else:
-					serialFromArduino.write(b'0,4,4,6,6\n')
+					serialFromArduino.write(b'0,4,4,6,6\n') # Deluminated SCE Power
 					sceAux = False
 					
-			elif (digit == 35):
+			elif (digit == 35): # Glycol Pump Swtich
 				if (offBit):
-					serialFromArduino.write(b'1,4,4,5,6\n')
+					serialFromArduino.write(b'1,4,4,5,6\n') # Illuminated Glycol Pump
 					offbit = 0
 					dieselpump.play()
 					glycolPushed = glycolPushed + 1
 					
 					if glycolPushed == 6:
 						sleep(0.1)
-						serialFromArduino.write(b'1,4,4,3,3\n')
+						serialFromArduino.write(b'1,4,4,3,3\n') # Illuminated Glycol Temp Low
 						sleep(0.1)
 						serialFromArduino.write(b'1,4,4,1,7\n') # Illuminated Master Alarm Pushbutton
 						cwsC.play(cws)
 				else:
-					serialFromArduino.write(b'0,4,4,5,6\n')
+					serialFromArduino.write(b'0,4,4,5,6\n') # Illuminated Glycol Pump
 					dieselpump.fadeout(1000)
 					
-			elif (digit == 36):
+			elif (digit == 36): # Docking Probe Retract
 				if (offBit):
-					serialFromArduino.write(b'0,4,4,4,6\n')
+					serialFromArduino.write(b'0,4,4,4,6\n') # Deluminate Docking Probe 
 					retract.stop()
 					offBit = 0
 				else:
-					serialFromArduino.write(b'1,4,4,4,6\n')
+					serialFromArduino.write(b'1,4,4,4,6\n') # Illuminate Docking Probe 
 					retract.play()
 					
-			elif (digit == 37):
+			elif (digit == 37): # Docking Probe Extend
 				if (offBit):
-					serialFromArduino.write(b'0,4,4,4,6\n')
+					serialFromArduino.write(b'0,4,4,4,6\n') # Deluminate Docking Probe 
 					extend.stop()
 					offBit = 0
 				else:
-					serialFromArduino.write(b'1,4,4,4,6\n')
+					serialFromArduino.write(b'1,4,4,4,6\n') # Illuminate Docking Probe 
 					extend.play()
 					
-			elif (digit == 38):
+			elif (digit == 38): # Cabin Fan Rocker Switch
 				if (offBit):   
-					serialFromArduino.write(b'0,4,4,0,6\n')
+					serialFromArduino.write(b'0,4,4,0,6\n') # Deluminate Cabin Fan
 					cfan.fadeout(2000)
 					offBit = 0
 				else:
-					serialFromArduino.write(b'1,4,4,0,6\n')
+					serialFromArduino.write(b'1,4,4,0,6\n') # Illuminate Cabin Fan
 					cfan.play()
 					
-			elif (digit == 39):
+			elif (digit == 39): # H2O Flow Rocker Switch
 				if (offBit):
-					serialFromArduino.write(b'0,4,4,1,6\n')
+					serialFromArduino.write(b'0,4,4,1,6\n') # Deluminate H20 Flow
 					hflow.fadeout(500)
 					offBit = 0
 				else:
-					serialFromArduino.write(b'1,4,4,1,6\n')
+					serialFromArduino.write(b'1,4,4,1,6\n') # Illuminate H2O Flow
 					hflow.play()
 
 			sleep(0.01)
