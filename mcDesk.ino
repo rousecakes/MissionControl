@@ -1,4 +1,3 @@
-
 #include <Wire.h> // For i2c communications with the MCP23017 i/o expanders and the HT16K33 LED matrix driver
 #include "Adafruit_LEDBackpack.h" // For the HT16K33
 #include "Adafruit_GFX.h" // For the HT16K33
@@ -11,16 +10,10 @@ Adafruit_LEDBackpack matrixD = Adafruit_LEDBackpack();
 Adafruit_LEDBackpack matrixE = Adafruit_LEDBackpack();
 
 #define matAaddy 0x70  // Addresses assigned by shorting pins (A0, A1, A2) on the board (HT16K33)
-#define matBaddy 0x74  // see HT16K33 data sheet, or Adafruit Learning documents, for more info on address setting
-#define matCaddy 0x76  // Use pins A4 and A5 on Arduino Board (UNO)
-#define matDaddy 0x72
-#define matEaddy 0x71
-
-// MatrixA Roll, AHR, IBR, ABR
-// MatrixB used for Bargraph displays
-// MatrixC used for some cryo Bargraph displays
-// MatrixD Mission timer, Pitch and Yaw
-// MatrixE Warning Light Matrixs
+#define matBaddy 0x71  // see HT16K33 data sheet, or Adafruit Learning documents, for more info on address setting
+#define matCaddy 0x72  // Use I2C pins A4 and A5 on Arduino Board (UNO)
+#define matDaddy 0x73
+#define matEaddy 0x74
 
 // MCP23017 registers (everything except direction defaults to 0)
 #define IODIRA   0x00   // IO direction  (0 = output, 1 = input (Default))
@@ -66,31 +59,38 @@ uint16_t CBuffer[8]; // buffer for LED matrix C
 uint16_t DBuffer[8]; // buffer for LED matrix D
 uint16_t EBuffer[8]; // buffer for LED matrix E
 
+// MatrixA Roll, AHR, IHR, ABR
+// MatrixB used for Bargraph displays
+// MatrixC used for some cryo Bargraph displays
+// MatrixD Mission timer, Pitch and Yaw
+// MatrixE Warning Light Matrixs, Switch/Button Lights
+
 uint8_t MTdaysC[4] = {0,1,2,3};
 uint8_t MThoursC[2] = {4,5};
 uint8_t MTminutesC[2] = {6,7};
-uint8_t MTCat[8] = {0,1,2,3,4,5,6,7};    //Cathodes on Mission Timer; Ipad Panel
-uint8_t MTAn[8] = {0,1,2,3,4,5,6,7};            //Anodes on Mission Timer; Ipad Panel
-uint8_t pitchCat[4] = {0,1,2,3};        //Cathodes on Pitch; Attitude Panel
-uint8_t pitchAn[8] = {8,9,10,11,12,13,14,15};  //Anodes on Pitch; Attitude Panel
-uint8_t yawCat[4] = {4,5,6,7};          //Cathodes on Yaw; Attitude Panel
-uint8_t yawAn[8] = {8,9,10,11,12,13,14,15};   //Anodes on Yaw; Attitude Panel
-uint8_t rollCat[4] = {0,1,2,3};         //Cathodes on Roll; Attitude Panel
-uint8_t rollAn[8] = {0,1,2,3,4,5,6,7};        //Anodes on Roll; Attitude Panel
-uint8_t ihrCat[4] = {0,1,2,3};          //Cathodes on IHR; Surgeon Panel
-uint8_t ihrAn[8] = {8,9,10,11,12,13,14,15};   //Anodes on IHR; Surgeon Panel
-uint8_t abrCat[4] = {4,5,6,7};          //Cathodes on ABR; Surgeon Panel
-uint8_t abrAn[8] = {8,9,10,11,12,13,14,15};  //Anodes on ABR; Surgeon Panel
-uint8_t ahrCat[4] = {4,5,6,7};          //Cathodes on AHR; Surgeon Panel
-uint8_t ahrAn[8] = {0,1,2,3,4,5,6,7};        //Anodes on AHR; Surgeon Panel
-uint8_t statCat[6] = {0,1,2,3,4,5};
-uint8_t statAn[6] = {0,1,2,3,4,5};           
+uint8_t MTCat[8] = {0,1,2,3,4,5,6,7};    //Cathodes on Mission Timer; Ipad Panel            Matrix D
+uint8_t MTAn[8] = {0,1,2,3,4,5,6,7};            //Anodes on Mission Timer; Ipad Panel       Matrix D
+uint8_t pitchCat[4] = {0,1,2,3};        //Cathodes on Pitch; Attitude Panel                 Matrix D
+uint8_t pitchAn[8] = {8,9,10,11,12,13,14,15};  //Anodes on Pitch; Attitude Panel            Matrix D
+uint8_t yawCat[4] = {4,5,6,7};          //Cathodes on Yaw; Attitude Panel                   Matrix D
+uint8_t yawAn[8] = {8,9,10,11,12,13,14,15};   //Anodes on Yaw; Attitude Panel               Matrix D
+uint8_t rollCat[4] = {0,1,2,3};         //Cathodes on Roll; Attitude Panel                  Matrix A
+uint8_t rollAn[8] = {0,1,2,3,4,5,6,7};        //Anodes on Roll; Attitude Panel              Matrix A
+uint8_t ihrCat[4] = {0,1,2,3};          //Cathodes on IHR; Surgeon Panel                    Matrix A
+uint8_t ihrAn[8] = {8,9,10,11,12,13,14,15};   //Anodes on IHR; Surgeon Panel                Matrix A
+uint8_t abrCat[4] = {4,5,6,7};          //Cathodes on ABR; Surgeon Panel                    Matrix A
+uint8_t abrAn[8] = {8,9,10,11,12,13,14,15};  //Anodes on ABR; Surgeon Panel                 Matrix A
+uint8_t ahrCat[4] = {4,5,6,7};          //Cathodes on AHR; Surgeon Panel                    Matrix A
+uint8_t ahrAn[8] = {0,1,2,3,4,5,6,7};        //Anodes on AHR; Surgeon Panel                 Matrix A
+uint8_t statCat[6] = {0,1,2,3,4,5};     //Cathodes on Status LED Panels                     Matrix E
+uint8_t statAn[6] = {0,1,2,3,4,5};           //Anodes on Status LED Panels                  Matrix E
 
 
+// Bar Graph Anodes and Cathodes
 uint8_t grphCats[24] = {0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7};
 uint8_t grphAns[24] =  {0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2};
-uint8_t cryoCats[24] = {0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7};
-uint8_t cryoAns[24] =  {0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2};
+uint8_t cryoCats[24] = {0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7};// Cats Cryo Pnl   Matrix C
+uint8_t cryoAns[24] =  {0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2};  // Anod Cryo Pnl Matrix C
 
 //                   light set-up for 12 Bar LED Displays, EECOM Panel
 //                   r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g,r,g
@@ -409,12 +409,6 @@ unsigned int expanderReadPort (const byte reg, int theport)
   return Wire.read();
 } // end of expanderRead
 
-void playSound (uint8_t s)
-{
-  Serial.write(s);
-}  
-
-
 void scanButtons(void) {
   byte current[64];
   uint16_t value = 0;
@@ -461,11 +455,14 @@ void scanButtons(void) {
     if ((current[i] == 0) && (state[i] == 1)) { // Switch was closed, now open
       Serial.write(i+128);
       state[i] = current[i];
-      if (i==17) lampTestOff();
-    } else if ((current[i] == 1) && (state[i] == 0)) { // Switch was open, now closed
+      if (i==17) 
+        lampTestOff();
+    } 
+    else if ((current[i] == 1) && (state[i] == 0)) { // Switch was open, now closed
       Serial.write(i);
       state[i] = current[i];
-      if (i==17) lampTestOn();
+      if (i==17) 
+        lampTestOn();
     }
   }  
 }
@@ -716,10 +713,10 @@ void setup ()
 //  expanderWriteBothPort (INTCONA, 0x00, expC);
 //  expanderWriteBothPort (INTCONA, 0x00, expD);  
   matrixA.begin(matAaddy);  // pass in the address of the HT16K33 (0x70)
-  matrixB.begin(matBaddy);  // pass in the address of the HT16K33 (0x74)
-  matrixC.begin(matCaddy);  // pass in the address of the HT16K33 (0x76)
-  matrixD.begin(matDaddy);  // pass in the address of the HT16K33 (0x72)
-  matrixE.begin(matEaddy);  // pass in the address of the HT16K33 (0x71)
+  matrixB.begin(matBaddy);  // pass in the address of the HT16K33 (0x71)
+  matrixC.begin(matCaddy);  // pass in the address of the HT16K33 (0x72)
+  matrixD.begin(matDaddy);  // pass in the address of the HT16K33 (0x73)
+  matrixE.begin(matEaddy);  // pass in the address of the HT16K33 (0x74)
 
   matrixA.setBrightness(10);  
   matrixB.setBrightness(10);  
